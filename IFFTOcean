@@ -1,0 +1,119 @@
+<?xml version="1.0"?>
+<project version="2">
+	<pipeline>
+		<pass name="MainLoop" type="compute">
+			<shader type="cs" path="shaders\ComputeCS.hlsl" entry="main" />
+			<groupsize x="16" y="16" z="1" />
+			<variables>
+				<variable type="float" name="time" system="Time" />
+				<variable type="int" name="N">
+					<row>
+						<value>256</value>
+					</row>
+				</variable>
+				<variable type="int" name="L">
+					<row>
+						<value>1000</value>
+					</row>
+				</variable>
+				<variable type="float" name="A">
+					<row>
+						<value>8</value>
+					</row>
+				</variable>
+				<variable type="float2" name="windDirection">
+					<row>
+						<value>1</value>
+						<value>1</value>
+					</row>
+				</variable>
+				<variable type="float" name="windSpeed">
+					<row>
+						<value>40</value>
+					</row>
+				</variable>
+			</variables>
+			<macros />
+		</pass>
+		<pass name="ButterflyPass" type="compute">
+			<shader type="cs" path="shaders\ButterflyCreateTex.hlsl" entry="mainButterflydddd" />
+			<groupsize x="1" y="256" z="1" />
+			<macros />
+		</pass>
+		<pass name="Simple" type="shader" active="true">
+			<shader type="vs" path="shaders\ScreenQuadVS.hlsl" entry="main" />
+			<shader type="ps" path="shaders\ScreenQuadPS.hlsl" entry="main" />
+			<inputlayout>
+				<item value="Position" semantic="POSITION" />
+				<item value="Normal" semantic="NORMAL" />
+				<item value="Texcoord" semantic="TEXCOORD0" />
+			</inputlayout>
+			<rendertexture />
+			<items>
+				<item name="ScreenQuad" type="geometry">
+					<type>ScreenQuadNDC</type>
+					<width>1</width>
+					<height>1</height>
+					<depth>1</depth>
+					<topology>TriangleList</topology>
+				</item>
+			</items>
+			<itemvalues />
+			<macros />
+		</pass>
+	</pipeline>
+	<objects>
+		<object type="image" name="ComputeOutput" width="512" height="512" format="R32G32B32A32_FLOAT" />
+		<object type="image" name="tilde_h0k" width="256" height="256" format="R32G32B32A32_FLOAT" />
+		<object type="image" name="tilde_h0minusk" width="256" height="256" format="R32G32B32A32_FLOAT" />
+		<object type="texture" path="noise1.png" />
+		<object type="texture" path="noise2.png" />
+		<object type="texture" path="noise3.png" />
+		<object type="texture" path="noise4.png" />
+		<object type="texture" path="tildehk_vals/tilde_h0k.png">
+			<bind slot="0" name="MainLoop" />
+		</object>
+		<object type="texture" path="tildehk_vals/tilde_h0minusk.png">
+			<bind slot="1" name="MainLoop" />
+		</object>
+		<object type="buffer" name="Indices" size="0" format="float" />
+		<object type="image" name="ButterFlyTexture" width="256" height="8" format="R32G32B32A32_FLOAT" />
+		<object type="image" name="tilde_hkt_real" width="256" height="256" format="R32G32B32A32_FLOAT">
+			<bind slot="0" name="MainLoop" uav="1" />
+			<bind slot="0" name="ButterflyPass" uav="0" />
+		</object>
+		<object type="image" name="tilde_hkt_im" width="256" height="256" format="R32G32B32A32_FLOAT">
+			<bind slot="1" name="MainLoop" uav="1" />
+			<bind slot="1" name="ButterflyPass" uav="0" />
+		</object>
+		<object type="image" name="" width="256" height="8" format="R32G32B32A32_FLOAT" />
+		<object type="image" name="targetB_r" width="1" height="256" format="R32G32B32A32_FLOAT">
+			<bind slot="2" name="MainLoop" uav="1" />
+			<bind slot="0" name="ButterflyPass" uav="1" />
+			<bind slot="0" name="Simple" uav="0" />
+		</object>
+		<object type="image" name="targetB_i" width="1" height="256" format="R32G32B32A32_FLOAT">
+			<bind slot="3" name="MainLoop" uav="1" />
+			<bind slot="1" name="ButterflyPass" uav="1" />
+			<bind slot="1" name="Simple" uav="0" />
+		</object>
+	</objects>
+	<cameras />
+	<settings>
+		<entry type="property" name="targetB_i" item="image" />
+		<entry type="file" name="MainLoop" shader="cs" />
+		<entry type="pinned" name="L" owner="MainLoop" />
+		<entry type="pinned" name="A" owner="MainLoop" />
+		<entry type="pinned" name="windDirection" owner="MainLoop" />
+		<entry type="pinned" name="windSpeed" owner="MainLoop" />
+		<entry type="pinned" name="N" owner="MainLoop" />
+		<entry type="camera" fp="false">
+			<distance>46</distance>
+			<pitch>24</pitch>
+			<yaw>43</yaw>
+			<roll>360</roll>
+		</entry>
+		<entry type="clearcolor" r="0" g="0" b="0" a="0" />
+		<entry type="usealpha" val="false" />
+	</settings>
+</project>
