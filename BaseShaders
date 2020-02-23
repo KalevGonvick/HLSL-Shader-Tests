@@ -1,0 +1,91 @@
+<?xml version="1.0"?>
+<project version="2">
+	<pipeline>
+		<pass name="HTildeComputePassCS" type="compute">
+			<shader type="cs" path="shaders\HTildeCompute.hlsl" entry="HTildeComputePassCS" />
+			<groupsize x="16" y="16" z="1" />
+			<macros />
+		</pass>
+		<pass name="FourierComponentsCS" type="compute">
+			<shader type="cs" path="shaders\FourierComponents.hlsl" entry="FourierComponentsCS" />
+			<groupsize x="16" y="16" z="1" />
+			<variables>
+				<variable type="float" name="t" system="Time" />
+			</variables>
+			<macros />
+		</pass>
+		<pass name="SimpleDisplay" type="shader" active="true">
+			<shader type="vs" path="shaders\SimpleVS.hlsl" entry="main" />
+			<shader type="ps" path="shaders\SimplePS.hlsl" entry="main" />
+			<inputlayout>
+				<item value="Position" semantic="POSITION" />
+				<item value="Normal" semantic="NORMAL" />
+				<item value="Texcoord" semantic="TEXCOORD0" />
+			</inputlayout>
+			<rendertexture />
+			<items>
+				<item name="ScreenQ" type="geometry">
+					<type>ScreenQuad</type>
+					<width>1</width>
+					<height>1</height>
+					<depth>1</depth>
+					<topology>TriangleList</topology>
+				</item>
+			</items>
+			<itemvalues />
+			<macros />
+		</pass>
+	</pipeline>
+	<objects>
+		<object type="buffer" name="tilde_h0" size="0" format="float" />
+		<object type="buffer" name="tilde_h0k" size="4096" format="vec4;" />
+		<object type="buffer" name="tilde_h0minusk" size="4096" format="vec4;" />
+		<object type="buffer" name="tilde_hkt_dy" size="4096" format="float4;">
+			<bind slot="0" name="FourierComponentsCS" />
+			<bind slot="0" name="SimpleDisplay" />
+		</object>
+		<object type="buffer" name="tilde_hkt_dx" size="4096" format="float4;">
+			<bind slot="1" name="FourierComponentsCS" />
+			<bind slot="1" name="SimpleDisplay" />
+		</object>
+		<object type="buffer" name="tilde_hkt_dz" size="4096" format="float4">
+			<bind slot="2" name="FourierComponentsCS" />
+			<bind slot="2" name="SimpleDisplay" />
+		</object>
+		<object type="buffer" name="InputData" size="0" format="" />
+		<object type="texture" path="noise2.png">
+			<bind slot="1" name="HTildeComputePassCS" />
+		</object>
+		<object type="texture" path="noise3.png">
+			<bind slot="2" name="HTildeComputePassCS" />
+		</object>
+		<object type="texture" path="noise4.png">
+			<bind slot="3" name="HTildeComputePassCS" />
+		</object>
+		<object type="buffer" name="tilde_h0k_data" size="176000" format="vec4;">
+			<bind slot="0" name="HTildeComputePassCS" />
+		</object>
+		<object type="buffer" name="tilde_h0minusk_data" size="176000" format="float4;">
+			<bind slot="1" name="HTildeComputePassCS" />
+		</object>
+		<object type="texture" path="noise1.png">
+			<bind slot="0" name="HTildeComputePassCS" />
+		</object>
+		<object type="rendertexture" name="SampleRT" format="R32G32B32A32_FLOAT" fsize="255,255" clear="true">
+			<bind slot="5" name="HTildeComputePassCS" />
+		</object>
+	</objects>
+	<cameras />
+	<settings>
+		<entry type="property" name="HTildeComputePassCS" item="pipe" />
+		<entry type="file" name="HTildeComputePassCS" shader="cs" />
+		<entry type="camera" fp="false">
+			<distance>14</distance>
+			<pitch>31</pitch>
+			<yaw>50</yaw>
+			<roll>360</roll>
+		</entry>
+		<entry type="clearcolor" r="0" g="0" b="0" a="1" />
+		<entry type="usealpha" val="false" />
+	</settings>
+</project>
