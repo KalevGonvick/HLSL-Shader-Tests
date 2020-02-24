@@ -3,7 +3,7 @@
 	<pipeline>
 		<pass name="MainLoop" type="compute">
 			<shader type="cs" path="shaders\ComputeCS.hlsl" entry="main" />
-			<groupsize x="16" y="16" z="1" />
+			<groupsize x="1" y="256" z="1" />
 			<variables>
 				<variable type="float" name="time" system="Time" />
 				<variable type="int" name="N">
@@ -33,11 +33,6 @@
 					</row>
 				</variable>
 			</variables>
-			<macros />
-		</pass>
-		<pass name="ButterflyPass" type="compute">
-			<shader type="cs" path="shaders\ButterflyCreateTex.hlsl" entry="mainButterflydddd" />
-			<groupsize x="1" y="256" z="1" />
 			<macros />
 		</pass>
 		<pass name="Simple" type="shader" active="true">
@@ -80,27 +75,25 @@
 		<object type="image" name="ButterFlyTexture" width="256" height="8" format="R32G32B32A32_FLOAT" />
 		<object type="image" name="tilde_hkt_real" width="256" height="256" format="R32G32B32A32_FLOAT">
 			<bind slot="0" name="MainLoop" uav="1" />
-			<bind slot="0" name="ButterflyPass" uav="0" />
 		</object>
 		<object type="image" name="tilde_hkt_im" width="256" height="256" format="R32G32B32A32_FLOAT">
 			<bind slot="1" name="MainLoop" uav="1" />
-			<bind slot="1" name="ButterflyPass" uav="0" />
 		</object>
 		<object type="image" name="" width="256" height="8" format="R32G32B32A32_FLOAT" />
-		<object type="image" name="targetB_r" width="1" height="256" format="R32G32B32A32_FLOAT">
+		<object type="image" name="targetB_r" width="256" height="256" format="R32G32B32A32_FLOAT">
 			<bind slot="2" name="MainLoop" uav="1" />
-			<bind slot="0" name="ButterflyPass" uav="1" />
-			<bind slot="0" name="Simple" uav="0" />
 		</object>
-		<object type="image" name="targetB_i" width="1" height="256" format="R32G32B32A32_FLOAT">
+		<object type="image" name="targetB_i" width="256" height="256" format="R32G32B32A32_FLOAT">
 			<bind slot="3" name="MainLoop" uav="1" />
-			<bind slot="1" name="ButterflyPass" uav="1" />
-			<bind slot="1" name="Simple" uav="0" />
+		</object>
+		<object type="image" name="DebugImageBuffer" width="256" height="256" format="R32G32B32A32_FLOAT">
+			<bind slot="4" name="MainLoop" uav="1" />
+			<bind slot="0" name="Simple" uav="0" />
 		</object>
 	</objects>
 	<cameras />
 	<settings>
-		<entry type="property" name="targetB_i" item="image" />
+		<entry type="property" name="DebugImageBuffer" item="image" />
 		<entry type="file" name="MainLoop" shader="cs" />
 		<entry type="pinned" name="L" owner="MainLoop" />
 		<entry type="pinned" name="A" owner="MainLoop" />

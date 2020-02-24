@@ -3,16 +3,21 @@
 #define TRANSFORM_INVERSE 1
 #define BUTTERFLY_COUNT 16
 #define LENGTH 256
-#define COLPASS
+#define ROWPASS
 
 //pre-calculated h0k and k0minuk values
 Texture2D<float4> tilde_h0k_val : register(t0);
 Texture2D<float4> tilde_h0minusk_val : register(t1);
 
+/* calculated real and imaginary values for htilde */
 RWTexture2D<float3> tilde_hkt_real : register(u0);
 RWTexture2D<float3> tilde_hkt_im : register(u1);
+
+/* target location for pingpong textures */
 RWTexture2D<float3> TextureTargetR  : register(u2);
 RWTexture2D<float3> TextureTargetI : register(u3);
+
+RWTexture2D<float4> DebugImageBuffer : register(u4);
 
 uniform int N;
 uniform int L;
@@ -20,12 +25,15 @@ uniform float A;
 uniform float2 windDirection;
 uniform float windSpeed;
 uniform float time;
+
+/* struct for complex numbers */
 struct complex
 {
 	float real;
 	float im;
 };
 
+/* complex number multiply */
 complex cmul(complex c0, complex c1) 
 {
 	complex c;
@@ -34,6 +42,7 @@ complex cmul(complex c0, complex c1)
 	return c;
 }
 
+/* complex number add */
 complex cadd(complex c0, complex c1)
 {
 	complex c;
@@ -42,13 +51,14 @@ complex cadd(complex c0, complex c1)
 	return c;
 }
 
+/* complex number conj */
 complex cconj(complex c)
 {
 	complex c_conj = complex(c.real, -c.im);
 	return c_conj;
 }
 
-
+/* get the butterfly values from the index and the texture indices.x */
 void GetButterflyValues(uint passIndex, uint x, out uint2 indices, out float2 weights)
 {
 	int sectionWidth = 2 << passIndex;
@@ -70,6 +80,7 @@ void GetButterflyValues(uint passIndex, uint x, out uint2 indices, out float2 we
 	}
 }
 
+/* memory shared within thread group */
 groupshared float3 pingPongArray[4][LENGTH];
 void ButterflyPass(int passIndex, uint x, uint t0, uint t1, out float3 resultR, out float3 resultI)
 {
@@ -87,6 +98,7 @@ void ButterflyPass(int passIndex, uint x, uint t0, uint t1, out float3 resultR, 
 
 }
 
+/* final pass for butterfly */
 void ButterflyPassFinalNoI(int passIndex, int x, int t0, int t1, out float3 resultR)
 {
 	uint2 Indices;
@@ -101,28 +113,23 @@ void ButterflyPassFinalNoI(int passIndex, int x, int t0, int t1, out float3 resu
 	resultR = (inputR1 + Weights.x * inputR2 + Weights.y * inputI2) * 0.5;
 }
 
-void mainButterfly( uint3 dispatchThreadId, uint groupIndex) {
+/* part 2 of compute shader */
+void mainButterfly( uint3 dispatchThreadId, uint groupIndex ) {
 #ifdef ROWPASS
-	uint2 texCoord = dispatchThreadId.xy;
-	if(fmod(groupIndex, 16) == 0 && groupIndex != 0) {
-		uint new_y = texCoord.y * groupIndex/16;
-		texCoord.y = new_y;
-	}
-	
 	uint2 texturePos = uint2( dispatchThreadId.xy );
 #else
 	uint2 texturePos = uint2( dispatchThreadId.yx );
 #endif
+	if(texturePos.x != 0) {
+		DebugImageBuffer[texturePos] = float4(255.0,1.0,1.0,1.0);
+	}
 
 	// Load entire row or column into scratch array
 	pingPongArray[0][dispatchThreadId.x].xyz = tilde_hkt_real[texturePos];
-
 	pingPongArray[1][dispatchThreadId.x].xyz = tilde_hkt_im[texturePos];
 
-	
 	uint4 textureIndices = uint4(0, 1, 2, 3);
 
-	
 	for (int i = 0; i < BUTTERFLY_COUNT-1; i++)
 	{
 		GroupMemoryBarrierWithGroupSync();
@@ -140,9 +147,11 @@ void mainButterfly( uint3 dispatchThreadId, uint groupIndex) {
 #else
 	ButterflyPass(BUTTERFLY_COUNT - 1, dispatchThreadId.x, textureIndices.x, textureIndices.y, TextureTargetR[texturePos], TextureTargetI[texturePos]);
 #endif
+	GroupMemoryBarrierWithGroupSync();
 }
 
-[numthreads(16, 16, 1)]
+/* declare threadcount for compute shader 256 x 1 x 256 = 256 invocations of 256 threads */
+[numthreads(256, 1, 1)]
 void main(
 	uint3 groupId : SV_GroupID,
 	uint3 groupThreadId : SV_GroupThreadID,
@@ -180,9 +189,11 @@ void main(
 	//dz
 	complex dy = complex(0.0, -k.y/mag);
 	complex h_k_t_dz = cmul(dy, h_k_t_dy);
-	tilde_hkt_real[dispatchThreadId.xy] = float4(h_k_t_dx.real, h_k_t_dy.real, h_k_t_dz.real, 1);
-	tilde_hkt_im[dispatchThreadId.xy] = float4(h_k_t_dx.im, h_k_t_dy.im, h_k_t_dz.im, 1);
-	GroupMemoryBarrierWithGroupSync();
+	
+	tilde_hkt_real[dispatchThreadId.xy] = float3(h_k_t_dx.real, h_k_t_dy.real, h_k_t_dz.real);
+	tilde_hkt_im[dispatchThreadId.xy] = float3(h_k_t_dx.im, h_k_t_dy.im, h_k_t_dz.im);
+	
+	//DeviceMemoryBarrierWithGroupSync();
 	mainButterfly(dispatchThreadId, groupIndex);
 }
 
